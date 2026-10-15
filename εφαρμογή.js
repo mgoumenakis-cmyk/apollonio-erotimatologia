@@ -3,7 +3,7 @@
    Οι απαντήσεις μένουν στο iPad (IndexedDB) μέχρι την εξαγωγή στο iCloud Drive (Web Share → Αρχεία). */
 "use strict";
 
-const ΕΚΔΟΣΗ_ΕΦΑΡΜΟΓΗΣ = "1.0.2";
+const ΕΚΔΟΣΗ_ΕΦΑΡΜΟΓΗΣ = "1.0.3";
 const ΣΧΗΜΑ = 1;
 const ΗΜΕΡΕΣ_ΔΙΑΤΗΡΗΣΗΣ = 30;
 
@@ -95,7 +95,7 @@ const Φωνή = (() => {
       if (ενεργή) { speechSynthesis.cancel(); ενεργή = false; κουμπί && κουμπί.classList.remove("ενεργή"); return; }
       φωνή = επιλογή_φωνής();
       const u = new SpeechSynthesisUtterance(κείμενο);
-      u.lang = "el-GR"; if (φωνή) u.voice = φωνή; u.rate = 0.9;
+      u.lang = "el-GR"; if (φωνή) u.voice = φωνή; u.rate = 1.0; u.pitch = 1.0;
       u.onend = u.onerror = () => { ενεργή = false; κουμπί && κουμπί.classList.remove("ενεργή"); };
       ενεργή = true; κουμπί && κουμπί.classList.add("ενεργή");
       speechSynthesis.cancel(); speechSynthesis.speak(u);
@@ -254,7 +254,8 @@ function απόδοση_επιλογών(σ, επιλογές, κλάση = "") 
     if (e.δείκτης) b.dataset.δείκτης = "1";
     κουμπιά.push(b); λ.append(b);
   };
-  for (const e of επιλογές) if (!e.όταν || ισχύει(e.όταν)) πρόσθεσε(e);
+  for (const e of επιλογές) if (!e.όταν || ισχύει(e.όταν))
+    πρόσθεσε(e.τιμή === true ? { κλάση: "ναι", δείκτης: "✓", ...e } : e.τιμή === false ? { κλάση: "όχι", δείκτης: "✕", ...e } : e);
   if (σ.άγνωστο && !επιλογές.some(e => e.τιμή === "άγνωστο")) πρόσθεσε({ τιμή: "άγνωστο", κείμενο: σ.ετικέτα_άγνωστο || "Δεν γνωρίζω" }, true);
   ο.append(λ);
 }
