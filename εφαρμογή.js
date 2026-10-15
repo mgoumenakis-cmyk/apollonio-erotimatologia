@@ -3,7 +3,7 @@
    Οι απαντήσεις μένουν στο iPad (IndexedDB) μέχρι την εξαγωγή στο iCloud Drive (Web Share → Αρχεία). */
 "use strict";
 
-const ΕΚΔΟΣΗ_ΕΦΑΡΜΟΓΗΣ = "1.0.0";
+const ΕΚΔΟΣΗ_ΕΦΑΡΜΟΓΗΣ = "1.0.1";
 const ΣΧΗΜΑ = 1;
 const ΗΜΕΡΕΣ_ΔΙΑΤΗΡΗΣΗΣ = 30;
 
@@ -72,22 +72,30 @@ const συσκευή = () => { try { return localStorage.getItem("συσκευή
 // ------------------------------------------------------------------ φωνή
 const Φωνή = (() => {
   let φωνή = null, ενεργή = false;
+  const ρύθμιση = () => { try { return localStorage.getItem("φωνή") || ""; } catch { return ""; } };
+  const βαθμός = v => (/premium/i.test(v.name + v.voiceURI) ? 3 : /enhanced|βελτιωμ/i.test(v.name + v.voiceURI) ? 2 : 1) + (v.localService ? 0.5 : 0);
+  function λίστα() {
+    if (!("speechSynthesis" in window)) return [];
+    return speechSynthesis.getVoices().filter(v => (v.lang || "").toLowerCase().startsWith("el")).sort((a, b) => βαθμός(b) - βαθμός(a));
+  }
   function επιλογή_φωνής() {
-    if (!("speechSynthesis" in window)) return null;
-    const όλες = speechSynthesis.getVoices().filter(v => (v.lang || "").toLowerCase().startsWith("el"));
+    const όλες = λίστα();
     if (!όλες.length) return null;
-    const βαθμός = v => (/premium/i.test(v.name + v.voiceURI) ? 3 : /enhanced|βελτιωμ/i.test(v.name + v.voiceURI) ? 2 : 1) + (v.localService ? 0.5 : 0);
-    return όλες.sort((a, b) => βαθμός(b) - βαθμός(a))[0];
+    const θέλω = ρύθμιση();
+    return όλες.find(v => v.voiceURI === θέλω) || όλες[0];
   }
   if ("speechSynthesis" in window) { speechSynthesis.onvoiceschanged = () => { φωνή = επιλογή_φωνής(); }; φωνή = επιλογή_φωνής(); }
   return {
     διαθέσιμη: () => "speechSynthesis" in window,
+    λίστα, ρύθμιση,
+    όρισε(voiceURI) { try { voiceURI ? localStorage.setItem("φωνή", voiceURI) : localStorage.removeItem("φωνή"); } catch {} φωνή = επιλογή_φωνής(); },
+    ποιότητα: v => (/premium/i.test(v.name + v.voiceURI) ? "Premium" : /enhanced|βελτιωμ/i.test(v.name + v.voiceURI) ? "Βελτιωμένη" : "Βασική"),
     πες(κείμενο, κουμπί) {
       if (!("speechSynthesis" in window)) return;
       if (ενεργή) { speechSynthesis.cancel(); ενεργή = false; κουμπί && κουμπί.classList.remove("ενεργή"); return; }
-      if (!φωνή) φωνή = επιλογή_φωνής();
+      φωνή = επιλογή_φωνής();
       const u = new SpeechSynthesisUtterance(κείμενο);
-      u.lang = "el-GR"; if (φωνή) u.voice = φωνή; u.rate = 0.92;
+      u.lang = "el-GR"; if (φωνή) u.voice = φωνή; u.rate = 0.9;
       u.onend = u.onerror = () => { ενεργή = false; κουμπί && κουμπί.classList.remove("ενεργή"); };
       ενεργή = true; κουμπί && κουμπί.classList.add("ενεργή");
       speechSynthesis.cancel(); speechSynthesis.speak(u);
@@ -195,7 +203,9 @@ function δείξε_θέση(i) {
   const σύνολο = Ροή.οθόνες.length;
   καθάρισε();
   const εκφ = κείμενο_εκφώνησης(σ);
-  κεφαλίδα(σ.ενότητα, i / σύνολο, προηγούμενη, εκφ);
+  const ίδιας = Ροή.οθόνες.map((x, k) => k).filter(k => Ροή.οθόνες[k].ενότητα === σ.ενότητα && ορατή(k));
+  const μετρητής = ίδιας.length > 1 ? ` · ${ίδιας.indexOf(i) + 1}/${ίδιας.length}` : "";
+  κεφαλίδα(σ.ενότητα + μετρητής, i / σύνολο, προηγούμενη, εκφ);
   const ο = $("οθόνη"), υ = $("υποσέλιδο");
   const απ = {
     ναι_όχι: () => απόδοση_επιλογών(σ, [{ τιμή: true, κείμενο: "ΝΑΙ", κλάση: "ναι", δείκτης: "✓" }, { τιμή: false, κείμενο: "ΟΧΙ", κλάση: "όχι", δείκτης: "✕" }]),
@@ -543,6 +553,16 @@ async function αποστολές() {
   }
   ο.append(el("h2", { class: "υποτίτλος" }, `${Α.εξαχθέντα} (${εξαχθ.length})`));
   ο.append(εξαχθ.length ? el("div", { class: "λίστα" }, ...εξαχθ.map(γραμμή)) : el("p", { class: "κενό" }, "—"));
+  if (Φωνή.διαθέσιμη()) {
+    const επ = el("select", { style: "max-width:420px" });
+    const γέμισε = () => { επ.innerHTML = ""; επ.append(el("option", { value: "" }, "Αυτόματη (η καλύτερη διαθέσιμη)"));
+      for (const v of Φωνή.λίστα()) επ.append(el("option", { value: v.voiceURI, selected: Φωνή.ρύθμιση() === v.voiceURI }, `${v.name} — ${Φωνή.ποιότητα(v)}`)); };
+    γέμισε(); if ("speechSynthesis" in window) speechSynthesis.addEventListener("voiceschanged", γέμισε, { once: true });
+    επ.onchange = () => Φωνή.όρισε(επ.value);
+    const δοκ = el("button", { class: "κουμπί δευτερεύον", type: "button", style: "min-height:64px", onclick: () => Φωνή.πες("Καλημέρα σας. Αυτή είναι η φωνή που θα διαβάζει τις ερωτήσεις.", δοκ) }, "🔊 Δοκιμή");
+    ο.append(el("div", { class: "πεδίο", style: "margin-top:26px" }, el("label", {}, "Φωνή εκφώνησης"), el("div", { style: "display:flex;gap:12px;align-items:center;flex-wrap:wrap" }, επ, δοκ),
+      el("span", { class: "μικρό" }, "Για καλύτερη φωνή: Ρυθμίσεις → Προσβασιμότητα → Εκφωνούμενο περιεχόμενο → Φωνές → Ελληνικά → λήψη «Premium» ή «Βελτιωμένη».")));
+  }
   const σ = el("input", { type: "text", value: συσκευή(), style: "max-width:320px" });
   σ.onchange = () => { try { localStorage.setItem("συσκευή", σ.value || "iPad υποδοχής"); } catch {} };
   ο.append(el("div", { class: "πεδίο", style: "margin-top:26px" }, el("label", {}, `Όνομα συσκευής · εφαρμογή ${ΕΚΔΟΣΗ_ΕΦΑΡΜΟΓΗΣ}`), σ));
