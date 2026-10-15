@@ -63,8 +63,9 @@ button { cursor: pointer; }
 .επιλογή.ναι { border-color: #bcd6c6; } .επιλογή.ναι.επιλεγμένη { border-color: var(--πράσινο); background: var(--πράσινο-ανοιχτό); }
 .επιλογή.ναι .δείκτης { background: var(--πράσινο-ανοιχτό); border-color: #9cc5ab; color: var(--πράσινο); }
 .επιλογή.ναι.επιλεγμένη .δείκτης { background: var(--πράσινο); border-color: var(--πράσινο); color: #fff; }
-.επιλογή.όχι .δείκτης { background: #f1f1f1; color: var(--δευτερεύον); }
-.επιλογή.όχι.επιλεγμένη .δείκτης { background: var(--κείμενο); border-color: var(--κείμενο); color: #fff; }
+.επιλογή.όχι { border-color: #ecc8c5; } .επιλογή.όχι.επιλεγμένη { border-color: var(--κόκκινο); background: var(--κόκκινο-ανοιχτό); }
+.επιλογή.όχι .δείκτης { background: var(--κόκκινο-ανοιχτό); border-color: #e3a9a4; color: var(--κόκκινο); }
+.επιλογή.όχι.επιλεγμένη .δείκτης { background: var(--κόκκινο); border-color: var(--κόκκινο); color: #fff; }
 .κλίμακα .επιλογή { min-height: 84px; }
 .κλίμακα .επιλογή .δείκτης { font-weight: 700; color: var(--κύριο); background: var(--κύριο-ανοιχτό); border-color: #bcd3e4; }
 .κλίμακα .επιλογή.επιλεγμένη .δείκτης { background: var(--κύριο); color: #fff; }
