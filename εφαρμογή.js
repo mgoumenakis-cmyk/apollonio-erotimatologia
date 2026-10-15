@@ -3,7 +3,7 @@
    Οι απαντήσεις μένουν στο iPad (IndexedDB) μέχρι την εξαγωγή στο iCloud Drive (Web Share → Αρχεία). */
 "use strict";
 
-const ΕΚΔΟΣΗ_ΕΦΑΡΜΟΓΗΣ = "1.0.3";
+const ΕΚΔΟΣΗ_ΕΦΑΡΜΟΓΗΣ = "1.0.4";
 const ΣΧΗΜΑ = 1;
 const ΗΜΕΡΕΣ_ΔΙΑΤΗΡΗΣΗΣ = 30;
 
@@ -95,7 +95,7 @@ const Φωνή = (() => {
       if (ενεργή) { speechSynthesis.cancel(); ενεργή = false; κουμπί && κουμπί.classList.remove("ενεργή"); return; }
       φωνή = επιλογή_φωνής();
       const u = new SpeechSynthesisUtterance(κείμενο);
-      u.lang = "el-GR"; if (φωνή) u.voice = φωνή; u.rate = 1.0; u.pitch = 1.0;
+      u.lang = "el-GR"; if (φωνή) u.voice = φωνή; u.rate = 1.1; u.pitch = 1.0;
       u.onend = u.onerror = () => { ενεργή = false; κουμπί && κουμπί.classList.remove("ενεργή"); };
       ενεργή = true; κουμπί && κουμπί.classList.add("ενεργή");
       speechSynthesis.cancel(); speechSynthesis.speak(u);
