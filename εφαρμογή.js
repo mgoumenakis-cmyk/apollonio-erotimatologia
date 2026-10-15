@@ -3,7 +3,7 @@
    Οι απαντήσεις μένουν στο iPad (IndexedDB) μέχρι την εξαγωγή στο iCloud Drive (Web Share → Αρχεία). */
 "use strict";
 
-const ΕΚΔΟΣΗ_ΕΦΑΡΜΟΓΗΣ = "1.0.4";
+const ΕΚΔΟΣΗ_ΕΦΑΡΜΟΓΗΣ = "1.0.5";
 const ΣΧΗΜΑ = 1;
 const ΗΜΕΡΕΣ_ΔΙΑΤΗΡΗΣΗΣ = 30;
 
@@ -579,7 +579,7 @@ async function εξαγωγή(εκκρεμή, κουμπί) {
   let επιτυχία = false;
   try {
     if (navigator.canShare && navigator.canShare({ files: [αρχείο] })) {
-      await navigator.share({ files: [αρχείο], title: όνομα });
+      await navigator.share({ files: [αρχείο] });   // χωρίς title: το iOS θα το αποθήκευε ως χωριστό .txt
       επιτυχία = true;
     } else {
       const a = el("a", { href: URL.createObjectURL(new Blob([περιεχόμενο], { type: "application/json" })), download: όνομα }); document.body.append(a); a.click(); a.remove();
