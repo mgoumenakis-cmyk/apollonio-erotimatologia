@@ -59,7 +59,7 @@ button { cursor: pointer; }
 .επιλογή.τετράγωνο .δείκτης { border-radius: 8px; }
 .επιλογή .σώμα { flex: 1; }
 .επιλογή .περιγραφή { display: block; font-size: var(--μέγεθος-μικρό); color: var(--δευτερεύον); font-weight: 400; margin-top: 2px; }
-.επιλογή.δευτερεύουσα { background: #f0f3f6; border-style: dashed; font-weight: 400; }
+.ενέργειες-κάτω { display: flex; gap: 14px; margin-top: 26px; align-items: center; }
 .επιλογή.ναι { border-color: #bcd6c6; } .επιλογή.ναι.επιλεγμένη { border-color: var(--πράσινο); background: var(--πράσινο-ανοιχτό); }
 .επιλογή.ναι .δείκτης { background: var(--πράσινο-ανοιχτό); border-color: #9cc5ab; color: var(--πράσινο); }
 .επιλογή.ναι.επιλεγμένη .δείκτης { background: var(--πράσινο); border-color: var(--πράσινο); color: #fff; }

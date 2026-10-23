@@ -3,7 +3,7 @@
    Οι απαντήσεις μένουν στο iPad (IndexedDB) μέχρι την εξαγωγή στο iCloud Drive (Web Share → Αρχεία). */
 "use strict";
 
-const ΕΚΔΟΣΗ_ΕΦΑΡΜΟΓΗΣ = "1.0.5";
+const ΕΚΔΟΣΗ_ΕΦΑΡΜΟΓΗΣ = "1.0.6";
 const ΣΧΗΜΑ = 1;
 const ΗΜΕΡΕΣ_ΔΙΑΤΗΡΗΣΗΣ = 30;
 
@@ -73,10 +73,14 @@ const συσκευή = () => { try { return localStorage.getItem("συσκευή
 const Φωνή = (() => {
   let φωνή = null, ενεργή = false;
   const ρύθμιση = () => { try { return localStorage.getItem("φωνή") || ""; } catch { return ""; } };
+  const ταχύτητα = () => { try { return Number(localStorage.getItem("φωνή_ταχύτητα")) || 1.1; } catch { return 1.1; } };
   const βαθμός = v => (/premium/i.test(v.name + v.voiceURI) ? 3 : /enhanced|βελτιωμ/i.test(v.name + v.voiceURI) ? 2 : 1) + (v.localService ? 0.5 : 0);
   function λίστα() {
     if (!("speechSynthesis" in window)) return [];
-    return speechSynthesis.getVoices().filter(v => (v.lang || "").toLowerCase().startsWith("el")).sort((a, b) => βαθμός(b) - βαθμός(a));
+    const είδαμε = new Set();
+    return speechSynthesis.getVoices().filter(v => (v.lang || "").toLowerCase().startsWith("el"))
+      .filter(v => { const k = v.voiceURI + "|" + v.name + "|" + v.localService; if (είδαμε.has(k)) return false; είδαμε.add(k); return true; })
+      .sort((a, b) => βαθμός(b) - βαθμός(a));
   }
   function επιλογή_φωνής() {
     const όλες = λίστα();
@@ -87,7 +91,8 @@ const Φωνή = (() => {
   if ("speechSynthesis" in window) { speechSynthesis.onvoiceschanged = () => { φωνή = επιλογή_φωνής(); }; φωνή = επιλογή_φωνής(); }
   return {
     διαθέσιμη: () => "speechSynthesis" in window,
-    λίστα, ρύθμιση,
+    λίστα, ρύθμιση, ταχύτητα,
+    όρισε_ταχύτητα(r) { try { localStorage.setItem("φωνή_ταχύτητα", String(r)); } catch {} },
     όρισε(voiceURI) { try { voiceURI ? localStorage.setItem("φωνή", voiceURI) : localStorage.removeItem("φωνή"); } catch {} φωνή = επιλογή_φωνής(); },
     ποιότητα: v => (/premium/i.test(v.name + v.voiceURI) ? "Premium" : /enhanced|βελτιωμ/i.test(v.name + v.voiceURI) ? "Βελτιωμένη" : "Βασική"),
     πες(κείμενο, κουμπί) {
@@ -95,7 +100,7 @@ const Φωνή = (() => {
       if (ενεργή) { speechSynthesis.cancel(); ενεργή = false; κουμπί && κουμπί.classList.remove("ενεργή"); return; }
       φωνή = επιλογή_φωνής();
       const u = new SpeechSynthesisUtterance(κείμενο);
-      u.lang = "el-GR"; if (φωνή) u.voice = φωνή; u.rate = 1.1; u.pitch = 1.0;
+      u.lang = "el-GR"; if (φωνή) u.voice = φωνή; u.rate = ταχύτητα(); u.pitch = 1.0;
       u.onend = u.onerror = () => { ενεργή = false; κουμπί && κουμπί.classList.remove("ενεργή"); };
       ενεργή = true; κουμπί && κουμπί.classList.add("ενεργή");
       speechSynthesis.cancel(); speechSynthesis.speak(u);
@@ -256,7 +261,7 @@ function απόδοση_επιλογών(σ, επιλογές, κλάση = "") 
   };
   for (const e of επιλογές) if (!e.όταν || ισχύει(e.όταν))
     πρόσθεσε(e.τιμή === true ? { κλάση: "ναι", δείκτης: "✓", ...e } : e.τιμή === false ? { κλάση: "όχι", δείκτης: "✕", ...e } : e);
-  if (σ.άγνωστο && !επιλογές.some(e => e.τιμή === "άγνωστο")) πρόσθεσε({ τιμή: "άγνωστο", κείμενο: σ.ετικέτα_άγνωστο || "Δεν γνωρίζω" }, true);
+  if (σ.άγνωστο && !επιλογές.some(e => e.τιμή === "άγνωστο")) πρόσθεσε({ τιμή: "άγνωστο", κείμενο: σ.ετικέτα_άγνωστο || "Δεν γνωρίζω" });
   ο.append(λ);
 }
 
@@ -268,7 +273,7 @@ function απόδοση_πολλαπλής(σ) {
   const ανανέωσε = () => { for (const [τ, b] of κουμπιά) { const on = τρέχ.has(τ); b.classList.toggle("επιλεγμένη", on); b.querySelector(".δείκτης").textContent = on ? "✓" : ""; } συν.disabled = τρέχ.size === 0; };
   for (const e of σ.επιλογές) {
     if (e.όταν && !ισχύει(e.όταν)) continue;
-    const b = el("button", { class: "επιλογή τετράγωνο" + (e.αποκλειστικό ? " δευτερεύουσα" : ""), type: "button" }, el("span", { class: "δείκτης" }), el("span", { class: "σώμα" }, e.κείμενο, e.περιγραφή ? el("span", { class: "περιγραφή" }, e.περιγραφή) : null));
+    const b = el("button", { class: "επιλογή τετράγωνο", type: "button" }, el("span", { class: "δείκτης" }), el("span", { class: "σώμα" }, e.κείμενο, e.περιγραφή ? el("span", { class: "περιγραφή" }, e.περιγραφή) : null));
     b.onclick = () => {
       if (e.αποκλειστικό) { τρέχ.clear(); τρέχ.add(e.τιμή); }
       else { for (const x of σ.επιλογές) if (x.αποκλειστικό) τρέχ.delete(x.τιμή); τρέχ.has(e.τιμή) ? τρέχ.delete(e.τιμή) : τρέχ.add(e.τιμή); }
@@ -295,9 +300,10 @@ function απόδοση_αριθμού(σ) {
   inp.oninput = έλεγχος;
   inp.onkeydown = (e) => { if (e.key === "Enter") { const v = έλεγχος(); if (v !== null) απάντησε(σ, v); } };
   const συν = el("button", { class: "κουμπί", type: "button", onclick: () => { const v = έλεγχος(); if (v !== null) απάντησε(σ, v); } }, "Συνέχεια ›");
-  const υ = $("υποσέλιδο");
-  if (σ.άγνωστο) υ.append(el("button", { class: "κουμπί δευτερεύον", type: "button", onclick: () => απάντησε(σ, "άγνωστο") }, σ.ετικέτα_άγνωστο || "Δεν γνωρίζω"));
-  υ.append(συν);
+  const εν = el("div", { class: "ενέργειες-κάτω" });   // κάτω από το πεδίο, ώστε να μην τα κρύβει το πληκτρολόγιο
+  if (σ.άγνωστο) εν.append(el("button", { class: "κουμπί δευτερεύον", type: "button", onclick: () => απάντησε(σ, "άγνωστο") }, σ.ετικέτα_άγνωστο || "Δεν γνωρίζω"));
+  εν.append(συν);
+  ο.append(εν);
   έλεγχος();
   setTimeout(() => inp.focus(), 50);
 }
@@ -557,12 +563,22 @@ async function αποστολές() {
   if (Φωνή.διαθέσιμη()) {
     const επ = el("select", { style: "max-width:420px" });
     const γέμισε = () => { επ.innerHTML = ""; επ.append(el("option", { value: "" }, "Αυτόματη (η καλύτερη διαθέσιμη)"));
-      for (const v of Φωνή.λίστα()) επ.append(el("option", { value: v.voiceURI, selected: Φωνή.ρύθμιση() === v.voiceURI }, `${v.name} — ${Φωνή.ποιότητα(v)}`)); };
+      const όλες = Φωνή.λίστα(), πλήθος = {};
+      for (const v of όλες) { const ε = `${v.name} — ${Φωνή.ποιότητα(v)}`; πλήθος[ε] = (πλήθος[ε] || 0) + 1; }
+      const αα = {};
+      for (const v of όλες) {
+        let ε = `${v.name} — ${Φωνή.ποιότητα(v)}`;
+        if (πλήθος[ε] > 1) { αα[ε] = (αα[ε] || 0) + 1; ε += v.localService ? ` (${αα[ε]})` : ` (${αα[ε]}, δίκτυο)`; }
+        επ.append(el("option", { value: v.voiceURI, selected: Φωνή.ρύθμιση() === v.voiceURI }, ε));
+      } };
     γέμισε(); if ("speechSynthesis" in window) speechSynthesis.addEventListener("voiceschanged", γέμισε, { once: true });
     επ.onchange = () => Φωνή.όρισε(επ.value);
     const δοκ = el("button", { class: "κουμπί δευτερεύον", type: "button", style: "min-height:64px", onclick: () => Φωνή.πες("Καλημέρα σας. Αυτή είναι η φωνή που θα διαβάζει τις ερωτήσεις.", δοκ) }, "🔊 Δοκιμή");
-    ο.append(el("div", { class: "πεδίο", style: "margin-top:26px" }, el("label", {}, "Φωνή εκφώνησης"), el("div", { style: "display:flex;gap:12px;align-items:center;flex-wrap:wrap" }, επ, δοκ),
-      el("span", { class: "μικρό" }, "Για καλύτερη φωνή: Ρυθμίσεις → Προσβασιμότητα → Εκφωνούμενο περιεχόμενο → Φωνές → Ελληνικά → λήψη «Premium» ή «Βελτιωμένη».")));
+    const ταχ = el("select", {}, ...[["0.9", "Αργή"], ["1.0", "Κανονική"], ["1.1", "Ελαφρώς γρήγορη"], ["1.2", "Γρήγορη"]]
+      .map(([v, k]) => el("option", { value: v, selected: String(Φωνή.ταχύτητα()) === v }, k)));
+    ταχ.onchange = () => Φωνή.όρισε_ταχύτητα(ταχ.value);
+    ο.append(el("div", { class: "πεδίο", style: "margin-top:26px" }, el("label", {}, "Φωνή εκφώνησης"), el("div", { style: "display:flex;gap:12px;align-items:center;flex-wrap:wrap" }, επ, ταχ, δοκ),
+      el("span", { class: "μικρό" }, "Για καλύτερη φωνή: Ρυθμίσεις → Προσβασιμότητα → Εκφωνούμενο περιεχόμενο → Φωνές → Ελληνικά → λήψη «Βελτιωμένη»· μετά τη λήψη κλείστε και ξανανοίξτε την εφαρμογή. Αν εμφανίζονται δύο ίδιες «Μελίνα», δοκιμάστε τες — η μία είναι συνήθως η Βελτιωμένη.")));
   }
   const σ = el("input", { type: "text", value: συσκευή(), style: "max-width:320px" });
   σ.onchange = () => { try { localStorage.setItem("συσκευή", σ.value || "iPad υποδοχής"); } catch {} };
