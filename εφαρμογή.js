@@ -3,7 +3,7 @@
    Οι απαντήσεις μένουν στο iPad (IndexedDB) μέχρι την εξαγωγή στο iCloud Drive (Web Share → Αρχεία). */
 "use strict";
 
-const ΕΚΔΟΣΗ_ΕΦΑΡΜΟΓΗΣ = "1.0.6";
+const ΕΚΔΟΣΗ_ΕΦΑΡΜΟΓΗΣ = "1.0.7";
 const ΣΧΗΜΑ = 1;
 const ΗΜΕΡΕΣ_ΔΙΑΤΗΡΗΣΗΣ = 30;
 
@@ -74,6 +74,7 @@ const Φωνή = (() => {
   let φωνή = null, ενεργή = false;
   const ρύθμιση = () => { try { return localStorage.getItem("φωνή") || ""; } catch { return ""; } };
   const ταχύτητα = () => { try { return Number(localStorage.getItem("φωνή_ταχύτητα")) || 1.1; } catch { return 1.1; } };
+  const τόνος = () => { try { return Number(localStorage.getItem("φωνή_τόνος")) || 1.0; } catch { return 1.0; } };
   const βαθμός = v => (/premium/i.test(v.name + v.voiceURI) ? 3 : /enhanced|βελτιωμ/i.test(v.name + v.voiceURI) ? 2 : 1) + (v.localService ? 0.5 : 0);
   function λίστα() {
     if (!("speechSynthesis" in window)) return [];
@@ -91,8 +92,9 @@ const Φωνή = (() => {
   if ("speechSynthesis" in window) { speechSynthesis.onvoiceschanged = () => { φωνή = επιλογή_φωνής(); }; φωνή = επιλογή_φωνής(); }
   return {
     διαθέσιμη: () => "speechSynthesis" in window,
-    λίστα, ρύθμιση, ταχύτητα,
+    λίστα, ρύθμιση, ταχύτητα, τόνος,
     όρισε_ταχύτητα(r) { try { localStorage.setItem("φωνή_ταχύτητα", String(r)); } catch {} },
+    όρισε_τόνο(t) { try { localStorage.setItem("φωνή_τόνος", String(t)); } catch {} },
     όρισε(voiceURI) { try { voiceURI ? localStorage.setItem("φωνή", voiceURI) : localStorage.removeItem("φωνή"); } catch {} φωνή = επιλογή_φωνής(); },
     ποιότητα: v => (/premium/i.test(v.name + v.voiceURI) ? "Premium" : /enhanced|βελτιωμ/i.test(v.name + v.voiceURI) ? "Βελτιωμένη" : "Βασική"),
     πες(κείμενο, κουμπί) {
@@ -100,7 +102,7 @@ const Φωνή = (() => {
       if (ενεργή) { speechSynthesis.cancel(); ενεργή = false; κουμπί && κουμπί.classList.remove("ενεργή"); return; }
       φωνή = επιλογή_φωνής();
       const u = new SpeechSynthesisUtterance(κείμενο);
-      u.lang = "el-GR"; if (φωνή) u.voice = φωνή; u.rate = ταχύτητα(); u.pitch = 1.0;
+      u.lang = "el-GR"; if (φωνή) u.voice = φωνή; u.rate = ταχύτητα(); u.pitch = τόνος();
       u.onend = u.onerror = () => { ενεργή = false; κουμπί && κουμπί.classList.remove("ενεργή"); };
       ενεργή = true; κουμπί && κουμπί.classList.add("ενεργή");
       speechSynthesis.cancel(); speechSynthesis.speak(u);
@@ -575,9 +577,12 @@ async function αποστολές() {
     επ.onchange = () => Φωνή.όρισε(επ.value);
     const δοκ = el("button", { class: "κουμπί δευτερεύον", type: "button", style: "min-height:64px", onclick: () => Φωνή.πες("Καλημέρα σας. Αυτή είναι η φωνή που θα διαβάζει τις ερωτήσεις.", δοκ) }, "🔊 Δοκιμή");
     const ταχ = el("select", {}, ...[["0.9", "Αργή"], ["1.0", "Κανονική"], ["1.1", "Ελαφρώς γρήγορη"], ["1.2", "Γρήγορη"]]
-      .map(([v, k]) => el("option", { value: v, selected: String(Φωνή.ταχύτητα()) === v }, k)));
+      .map(([v, k]) => el("option", { value: v, selected: String(Φωνή.ταχύτητα()) === v }, "Ταχύτητα: " + k)));
     ταχ.onchange = () => Φωνή.όρισε_ταχύτητα(ταχ.value);
-    ο.append(el("div", { class: "πεδίο", style: "margin-top:26px" }, el("label", {}, "Φωνή εκφώνησης"), el("div", { style: "display:flex;gap:12px;align-items:center;flex-wrap:wrap" }, επ, ταχ, δοκ),
+    const τον = el("select", {}, ...[["0.8", "Βαθύτερος"], ["0.9", "Ελαφρώς βαθύτερος"], ["1.0", "Κανονικός"], ["1.1", "Ελαφρώς οξύτερος"], ["1.2", "Οξύτερος"]]
+      .map(([v, k]) => el("option", { value: v, selected: String(Φωνή.τόνος()) === v }, "Τόνος: " + k)));
+    τον.onchange = () => Φωνή.όρισε_τόνο(τον.value);
+    ο.append(el("div", { class: "πεδίο", style: "margin-top:26px" }, el("label", {}, "Φωνή εκφώνησης"), el("div", { style: "display:flex;gap:12px;align-items:center;flex-wrap:wrap" }, επ, ταχ, τον, δοκ),
       el("span", { class: "μικρό" }, "Για καλύτερη φωνή: Ρυθμίσεις → Προσβασιμότητα → Εκφωνούμενο περιεχόμενο → Φωνές → Ελληνικά → λήψη «Βελτιωμένη»· μετά τη λήψη κλείστε και ξανανοίξτε την εφαρμογή. Αν εμφανίζονται δύο ίδιες «Μελίνα», δοκιμάστε τες — η μία είναι συνήθως η Βελτιωμένη.")));
   }
   const σ = el("input", { type: "text", value: συσκευή(), style: "max-width:320px" });
